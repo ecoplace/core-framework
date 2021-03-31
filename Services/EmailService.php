@@ -413,6 +413,8 @@ class EmailService
             'ticket.tags' => implode(',', $supportTags),
             'ticket.source' => ucfirst($ticket->getSource()),
             'ticket.status' => $ticket->getStatus()->getDescription(),
+            'ticket.createdAt' => $ticket->getCreatedAt()->format('d-m-Y h:ia'),
+            'ticket.updatedAt' => $ticket->getUpdatedAt()->format('d-m-Y h:ia'),
             'ticket.priority' => $ticket->getPriority()->getDescription(),
             'ticket.team' => $supportTeam ? $supportTeam->getName() : '',
             'ticket.group' => $supportGroup ? $supportGroup->getName() : '',
