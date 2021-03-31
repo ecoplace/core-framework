@@ -431,6 +431,7 @@ class EmailService
             'ticket.ticketGenerateUrlCustomer' => sprintf("<a href='%s'>click here</a>", $generateTicketURLCustomer),
             'global.companyName' => $helpdeskWebsite->getName(),
             'global.companyLogo' => "<img style='max-height:60px' src='$companyLogoURL'/>",
+            'global.companyLogoURL' => $companyLogoURL,
             'global.companyUrl' => "<a href='$companyURL'>$companyURL</a>",
         ];
 
