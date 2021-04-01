@@ -311,7 +311,7 @@
                 {% if currentUserDetails is defined and currentUserDetails.thumbnail is defined and currentUserDetails.thumbnail is not empty %}
                     <img class='uv-avatar' src="{{ app.request.scheme ~'://' ~ app.request.httpHost ~ asset('') }}{{ currentUserDetails.thumbnail }}"/>
                 {% else %}
-                    <img class='uv-avatar' src="{{ asset('bundles/uvdeskcoreframework/images/uv-avatar-batman.png') }}"/>
+                    <img class='uv-avatar' src="{{ asset(default_agent_image_path) }}"/>
                 {% endif %}
             </div>
 
