@@ -527,7 +527,7 @@ class UserService
         return $website ? $website : false;
     }
 
-    public function getWebsiteSchema()
+    public function getWebsiteSchema($article = null)
     {
 
         $graph = new \Spatie\SchemaOrg\Graph();
@@ -554,6 +554,10 @@ class UserService
             \Spatie\SchemaOrg\Schema::searchAction()
                 ->target((new \Spatie\SchemaOrg\EntryPoint)->urlTemplate('https://www.charitybay.org/listings?q={search_term_string}'))
                 ->setProperty('query-input',['type'=>'PropertyValueSpecification','valueRequired'=>true,'valueName'=>'search_term_string']));
+
+        if($article){
+            $graph->fAQPage()->mainEntity(\Spatie\SchemaOrg\Schema::question()->name($article->getMetaTitle())->acceptedAnswer(\Spatie\SchemaOrg\Schema::answer()->text(strip_tags($article->getMetaDescription()))));
+        }
 
         return $graph;
     }

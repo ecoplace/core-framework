@@ -1,10 +1,10 @@
 parameters:
     app_locales: en|fr|it
-    
+
     # Default Assets
-    assets_default_agent_profile_image_path: 'bundles/uvdeskcoreframework/images/uv-avatar-batman.png'
-    assets_default_customer_profile_image_path: 'bundles/uvdeskcoreframework/images/uv-avatar-ironman.png'
-    assets_default_helpdesk_profile_image_path: 'bundles/uvdeskcoreframework/images/uv-avatar-uvdesk.png'
+    assets_default_agent_profile_image_path: 'assets/agent.png'
+    assets_default_customer_profile_image_path: 'assets/customer.png'
+    assets_default_helpdesk_profile_image_path: 'assets/logo.png'
 
     uvdesk_site_path.member_prefix: member
     uvdesk_site_path.knowledgebase_customer_prefix: customer
@@ -15,13 +15,20 @@ parameters:
     max_file_uploads: 20
     upload_max_filesize: 2097152
 
+    is_google_captcha_enabled: true
+    recaptcha_site_key: '6Lcj5JQaAAAAAIgb_nhvkCNBCTliiB1o19lj0Kxz'
+    recaptcha_secret_key: '6Lcj5JQaAAAAAOIGbgzLgVqlelE0xpZ0eKcaZoTD'
+
 uvdesk:
-    site_url: 'localhost:8000'
+    site_url: 'help.charitybay.org'
     upload_manager:
         id: Webkul\UVDesk\CoreFrameworkBundle\FileSystem\UploadManagers\Localhost
-    
-    support_email: ~
-    
+
+    support_email:
+        id: support@charitybay.org
+        name: charityBay Support
+        mailer_id: mailer_1963
+
     # Default resources
     default:
         ticket:
