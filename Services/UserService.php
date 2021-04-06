@@ -540,19 +540,19 @@ class UserService
             ->address(\Spatie\SchemaOrg\Schema::postalAddress()->streetAddress('109 Manningham Street')->addressLocality('Parkville')->addressRegion('Victoria')->postalCode(3052)->addressCountry('AU'))
             ->description('')
             ->taxID(60636169698)
-            ->logo($this->getWebsiteDetails('knowledgebase')->getLogo())
+            ->logo(url($this->getWebsiteDetails('knowledgebase')->getLogo()))
             ->url($this->container->getParameter('uvdesk.site_url'))
             ->email('info@charitybay.org')
             ->duns(746822318)
             ->potentialAction(
                 \Spatie\SchemaOrg\Schema::searchAction()
-                    ->target((new \Spatie\SchemaOrg\EntryPoint)->urlTemplate('https://www.charitybay.org/listings?q={search_term_string}'))
+                    ->target((new \Spatie\SchemaOrg\EntryPoint)->urlTemplate(url('/en/search?s={search_term_string}')))
                     ->setProperty('query-input',['type'=>'PropertyValueSpecification','valueRequired'=>true,'valueName'=>'search_term_string']))
             ->contactPoint(\Spatie\SchemaOrg\Schema::contactPoint()->areaServed('Worldwide')->contactType('customer support')->email('info@charitybay.org'));
 
         $graph->webSite()->url($this->container->getParameter('uvdesk.site_url'))->potentialAction(
             \Spatie\SchemaOrg\Schema::searchAction()
-                ->target((new \Spatie\SchemaOrg\EntryPoint)->urlTemplate('https://www.charitybay.org/listings?q={search_term_string}'))
+                ->target((new \Spatie\SchemaOrg\EntryPoint)->urlTemplate(url('/en/search?s={search_term_string}')))
                 ->setProperty('query-input',['type'=>'PropertyValueSpecification','valueRequired'=>true,'valueName'=>'search_term_string']));
 
         if($article){
