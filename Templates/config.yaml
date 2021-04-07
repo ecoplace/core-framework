@@ -5,6 +5,7 @@ parameters:
     assets_default_agent_profile_image_path: 'assets/agent.png'
     assets_default_customer_profile_image_path: 'assets/customer.png'
     assets_default_helpdesk_profile_image_path: 'assets/logo.png'
+    assets_default_app_icon_path: 'assets/app_icon.png'
 
     uvdesk_site_path.member_prefix: member
     uvdesk_site_path.knowledgebase_customer_prefix: customer
