@@ -2,6 +2,8 @@
 
 namespace Webkul\UVDesk\CoreFrameworkBundle\Workflow\Actions\Ticket;
 
+use GuzzleHttp\Client;
+use GuzzleHttp\Exception\GuzzleException;
 use Webkul\UVDesk\AutomationBundle\Workflow\FunctionalGroup;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Webkul\UVDesk\CoreFrameworkBundle\Entity\Ticket;
@@ -11,7 +13,7 @@ class Webhook extends WorkflowAction
 {
     public static function getId()
     {
-        return 'uvdesk.ticket.webhook';
+        return 'reply';
     }
 
     public static function getDescription()
@@ -26,122 +28,101 @@ class Webhook extends WorkflowAction
 
     public static function getOptions(ContainerInterface $container)
     {
-        $entityManager = $container->get('doctrine.orm.entity_manager');
-
-        $emailTemplateCollection = array_map(function ($emailTemplate) {
-            return [
-                'id' => $emailTemplate->getId(),
-                'name' => $emailTemplate->getName(),
-            ];
-        }, $entityManager->getRepository('UVDeskCoreFrameworkBundle:EmailTemplates')->findAll());
-
-        $agentCollection = array_map(function ($agent) {
-            return [
-                'id' => $agent['id'],
-                'name' => $agent['name'],
-            ];
-        }, $container->get('user.service')->getAgentPartialDataCollection());
-
-        array_unshift($agentCollection, [
-            'id' => 'responsePerforming',
-            'name' => 'Response Performing Agent',
-        ], [
-            'id' => 'assignedAgent',
-            'name' => 'Assigned Agent',
-        ]);
-
-        return [
-            'partResults' => $agentCollection,
-            'templates' => $emailTemplateCollection,
-        ];
+        return [];
     }
 
     public static function applyAction(ContainerInterface $container, $entity, $value = null)
     {
-        $entityManager = $container->get('doctrine.orm.entity_manager');
+        if($entity instanceof Ticket && $entity->getIsTrashed())
+            return;
+        if($entity instanceof Ticket) {
+            $placeHolderValues   = $container->get('email.service')->getTicketPlaceholderValues($entity);
 
-        if ($entity instanceof Ticket) {
-            $emailTemplate = $entityManager->getRepository('UVDeskCoreFrameworkBundle:EmailTemplates')->findOneById($value['value']);
-            $emails = self::getAgentMails($value['for'], (($ticketAgent = $entity->getAgent()) ? $ticketAgent->getEmail() : ''), $container);
-            
-            if ($emails && $emailTemplate) {
-                $queryBuilder = $entityManager->createQueryBuilder()
-                    ->select('th.messageId as messageId')
-                    ->from('UVDeskCoreFrameworkBundle:Thread', 'th')
-                    ->where('th.createdBy = :userType')->setParameter('userType', 'agent')
-                    ->orderBy('th.id', 'DESC')
-                    ->setMaxResults(1);
-                
-                $inReplyTo = $queryBuilder->getQuery()->getOneOrNullResult();
-
-                if (!empty($inReplyTo)) {
-                    $emailHeaders['In-Reply-To'] = $inReplyTo;
+            $assignedTo = $placeHolderValues['ticket.agentName'] ? $placeHolderValues['ticket.agentName'] : '(none)';
+            $post_data = '{
+              "@context": "https://schema.org/extensions",
+              "@type": "MessageCard",
+              "themeColor": "ff5a5f",
+              "summary": "Ticket Created",
+              "title": "#'.$placeHolderValues['ticket.id'].' '.$placeHolderValues['ticket.subject'].'",
+              "sections": [
+                {
+                  "activityTitle": "'.$placeHolderValues['ticket.customerName'].'",
+                  "activitySubtitle": "'.$placeHolderValues['ticket.createdAt'].'",
+                  "activityImage": "https://help.charitybay.org/assets/customer.png",
+                  "facts": [
+                    {
+                      "name": "Source:",
+                      "value": "'.$placeHolderValues['ticket.source'].'"
+                    },
+                    {
+                      "name": "Priority:",
+                      "value": "'.$placeHolderValues['ticket.priority'].'"
+                    },
+                    {
+                      "name": "Assigned to:",
+                      "value": "'.$assignedTo.'"
+                    },
+                    {
+                      "name": "Status:",
+                      "value": "'.$placeHolderValues['ticket.status'].'"
+                    }
+                  ],
+                  "text": "'.$placeHolderValues['ticket.message'].'"
                 }
-
-                if (!empty($entity->getReferenceIds())) {
-                    $emailHeaders['References'] = $entity->getReferenceIds();
+              ],
+              "potentialAction": [
+                {
+                  "@type": "ActionCard",
+                  "name": "Send reply",
+                  "inputs": [
+                    {
+                      "@type": "TextInput",
+                      "id": "feedback",
+                      "isMultiline": true,
+                      "title": "Write your response here, please note that this will not assign the ticket to you."
+                    }
+                  ],
+                  "actions": [
+                    {
+                      "@type": "HttpPOST",
+                      "name": "Send reply",
+                      "isPrimary": true,
+                      "target": "https://help.charitybay.org/api/v1/ticket/37/thread",
+                      "body": "threadType=reply&message={{feedback.value}}&actAsType=agent&actAsEmail=admin@charitybay.org",
+                      "bodyContentType": "application/x-www-form-urlencoded",
+                      "headers": [
+                            { "name": "Authorization", "value": "" },
+                            {
+                                "name": "X-Custom-Auth",
+                                "value": "basic WAQZ0CLACHOJGH5GUZF7HIPTPOFAJ82SFQWIUNJ1RJJNA2N1EYJUS2AVAM4UAWIP"
+                            }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "@type": "OpenUri",
+                  "name": "View ticket",
+                  "targets": [
+                    { "os": "default", "uri": "https://help.charitybay.org/en/member/ticket/view/'.$placeHolderValues['ticket.id'].'" }
+                  ]
                 }
+              ]
+            }';
 
-                // Only process attachments if required in the message body
-                // @TODO: Revist -> Maybe we should always include attachments if they are provided??
-                if (!empty($entity->createdThread) && strpos($emailTemplate->getMessage(), '{%ticket.attachments%}') !== false || strpos($emailTemplate->getMessage(), '{% ticket.attachments %}') !== false) {
-                    $attachments = array_map(function($attachment) use ($container) { 
-                        return [
-                            'name' => $attachment['name'],
-                            'path' => str_replace('//', '/', $container->get('kernel')->getProjectDir() . "/public" . $attachment['relativePath']),
-                        ];
-                    }, $entity->createdThread->getAttachments()->toArray());
-                }
+//            dd($post_data);
 
-                $placeHolderValues = $container->get('email.service')->getTicketPlaceholderValues($entity, 'agent');
-                $subject = $container->get('email.service')->processEmailSubject($emailTemplate->getSubject(), $placeHolderValues);
-                $message = $container->get('email.service')->processEmailContent($emailTemplate->getMessage(), $placeHolderValues);
-                
-                foreach ($emails as $email) {
-                    $messageId = $container->get('email.service')->sendMail($subject, $message, $email, $emailHeaders, null, $attachments ?? []);
-                }
-            } else {
-                // Email Template/Emails Not Found. Disable Workflow/Prepared Response
-                // $this->disableEvent($event, $entity);
+            $client = new Client();
+            try {
+                $client->request('POST', $value, [
+                    'body' => $post_data
+                ]);
+            } catch (GuzzleException $e) {
+                dd($e);
             }
-        } 
-    }
 
-    public static function getAgentMails($for, $currentEmails, $container)
-    {
-        $agentMails = [];
-        $entityManager = $container->get('doctrine.orm.entity_manager');
-
-        foreach ($for as $agent) {
-            if ($agent == 'assignedAgent') {
-                if (is_array($currentEmails)) {
-                    $agentMails = array_merge($agentMails, $currentEmails);
-                } else {
-                    $agentMails[] = $currentEmails;
-                }
-            } else if ($agent == 'responsePerforming' && is_object($currentUser = $container->get('security.token_storage')->getToken()->getUser())) {
-                // Add current user email if any
-                $agentMails[] = $currentUser->getEmail();
-            } else if ($agent == 'baseAgent') {
-                // Add selected user email if any
-                if (is_array($currentEmails)) {
-                    $agentMails = array_merge($agentMails, $currentEmails);
-                } else {
-                    $agentMails[] = $currentEmails;
-                }
-            } else if((int)$agent) {
-                $qb = $entityManager->createQueryBuilder();
-                $email = $qb->select('u.email')->from('UVDeskCoreFrameworkBundle:User', 'u')
-                    ->andwhere("u.id = :userId")
-                    ->setParameter('userId', $agent)
-                    ->getQuery()->getResult();
-                
-                if (isset($email[0]['email'])) {
-                    $agentMails[] = $email[0]['email'];
-                }
-            }
         }
-
-        return array_filter($agentMails);
     }
+
 }
