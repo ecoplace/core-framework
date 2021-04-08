@@ -9,7 +9,7 @@ use Symfony\Component\DependencyInjection\ContainerInterface;
 use Webkul\UVDesk\CoreFrameworkBundle\Entity\Ticket;
 use Webkul\UVDesk\AutomationBundle\Workflow\Action as WorkflowAction;
 
-class Webhook extends WorkflowAction
+class MSSupportTicket extends WorkflowAction
 {
     public static function getId()
     {
@@ -18,7 +18,7 @@ class Webhook extends WorkflowAction
 
     public static function getDescription()
     {
-        return "Webhook";
+        return "MS Support Ticket";
     }
 
     public static function getFunctionalGroup()
@@ -80,7 +80,14 @@ class Webhook extends WorkflowAction
                       "@type": "TextInput",
                       "id": "feedback",
                       "isMultiline": true,
-                      "title": "Write your response here, please note that this will not assign the ticket to you."
+                      "isRequired": true,
+                      "title": "Write your response here."
+                    },
+                    {
+                      "@type": "TextInput",
+                      "id": "email",
+                      "isRequired": true,
+                      "title": "Your email address"
                     }
                   ],
                   "actions": [
@@ -88,8 +95,8 @@ class Webhook extends WorkflowAction
                       "@type": "HttpPOST",
                       "name": "Send reply",
                       "isPrimary": true,
-                      "target": "https://help.charitybay.org/api/v1/ticket/37/thread",
-                      "body": "threadType=reply&message={{feedback.value}}&actAsType=agent&actAsEmail=admin@charitybay.org",
+                      "target": "https://help.charitybay.org/api/v1/ticket/'.$placeHolderValues['ticket.id'].'/thread",
+                      "body": "threadType=reply&message={{feedback.value}}&actAsType=agent&actAsEmail={{email.value}}",
                       "bodyContentType": "application/x-www-form-urlencoded",
                       "headers": [
                             { "name": "Authorization", "value": "" },
@@ -111,15 +118,13 @@ class Webhook extends WorkflowAction
               ]
             }';
 
-//            dd($post_data);
-
             $client = new Client();
             try {
                 $client->request('POST', $value, [
                     'body' => $post_data
                 ]);
             } catch (GuzzleException $e) {
-                dd($e);
+               dump($e->getMessage());
             }
 
         }
