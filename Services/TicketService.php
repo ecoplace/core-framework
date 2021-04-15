@@ -387,7 +387,7 @@ class TicketService
             return $types;
 
         $qb = $this->entityManager->createQueryBuilder();
-        $qb->select('tp.id','tp.code As name')->from('UVDeskCoreFrameworkBundle:TicketType', 'tp')
+        $qb->select('tp.id','tp.code As name','tp.description')->from('UVDeskCoreFrameworkBundle:TicketType', 'tp')
                 ->andwhere('tp.isActive = 1')
                 ->orderBy('tp.code', 'ASC');
 
