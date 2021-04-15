@@ -39,6 +39,7 @@ class MSSupportTicket extends WorkflowAction
             $placeHolderValues   = $container->get('email.service')->getTicketPlaceholderValues($entity);
 
             $assignedTo = $placeHolderValues['ticket.agentName'] ? $placeHolderValues['ticket.agentName'] : '(none)';
+            $ClearText = preg_replace( "/\n\s+/", "\n", rtrim(html_entity_decode(strip_tags($placeHolderValues['ticket.message']))) );
             $post_data = '{
               "@context": "https://schema.org/extensions",
               "@type": "MessageCard",
@@ -68,7 +69,7 @@ class MSSupportTicket extends WorkflowAction
                       "value": "'.$placeHolderValues['ticket.status'].'"
                     }
                   ],
-                  "text": "'.$placeHolderValues['ticket.message'].'"
+                  "text": "'.$ClearText.'"
                 }
               ],
               "potentialAction": [
@@ -124,7 +125,7 @@ class MSSupportTicket extends WorkflowAction
                     'body' => $post_data
                 ]);
             } catch (GuzzleException $e) {
-               dump($e->getMessage());
+                dump($e->getMessage());
             }
 
         }
