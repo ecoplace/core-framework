@@ -110,6 +110,20 @@ class MSReviewTicket extends WorkflowAction
                   ]
                 },
                 {
+                  "@type": "HttpPOST",
+                  "name": "Mark Spam",
+                  "target": "https://help.charitybay.org/api/v1/ticket/'.$placeHolderValues['ticket.id'].'/update",
+                  "body": "property=status&value=6",
+                  "bodyContentType": "application/x-www-form-urlencoded",
+                  "headers": [
+                        { "name": "Authorization", "value": "" },
+                        {
+                            "name": "X-Custom-Auth",
+                            "value": "basic WAQZ0CLACHOJGH5GUZF7HIPTPOFAJ82SFQWIUNJ1RJJNA2N1EYJUS2AVAM4UAWIP"
+                        }
+                  ]
+                },
+                {
                   "@type": "OpenUri",
                   "name": "View ticket",
                   "targets": [
